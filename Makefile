@@ -13,7 +13,7 @@ proto:
 
 .PHONY: test
 test:
-	go test -race -cover -v ./...
+	go test -v ./...
 
 .PHONY: run
 run:
