@@ -1,8 +1,8 @@
-module github.com/hb-chen/gateway/v2
+module github.com/gokulchandrap/go-app-test/v2
 
 go 1.15
 
-replace github.com/grpc-ecosystem/grpc-gateway/v2 v2.3.0 => github.com/hb-chen/grpc-gateway/v2 v2.3.0-dynamic
+replace github.com/gokulchandrap/go-app-test/v2 v2.3.0 => github.com/gokulchandrap/go-app-test/v2 v2.3.0-dynamic
 
 require (
 	github.com/bitly/go-simplejson v0.5.0
