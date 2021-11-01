@@ -1,0 +1,10 @@
+type: google.api.Service
+config_version: 3
+
+http:
+  rules:
+    - selector: com.hbchen.Example.Call
+      post: /v1/example/call
+      body: "*"
+    - selector: com.hbchen.Example.Call
+      get: /v1/example/call/{name}
