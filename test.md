@@ -11,7 +11,7 @@ If you’re deploying software on OpenShift you’ll basically use the project e
 
 A good example would be network policies that close your project for external traffic so that is isolated and secure by default – if you want to permit some kind of traffic you would do so by creating additional policies explicitly. In a similar way, you could provide default quotas or LimitRange objects and make your new projects pre-configured according to your organization rules.
 
-## Generating Kubernetes namespace for each OpenShift Project.
+### Generating Kubernetes namespace for each OpenShift Project.
 
 If you are migrating individual projects (recommended), here is a typical script to convert an OpenShift Project to Kubernetes namespace. Substitute the variable names accordingly before running.
 
@@ -30,7 +30,7 @@ yq e '.apiVersion |= "v1"' - \
 | yq e 'del(.status)' -
 ```
 
-## Running across the entire OpenShift Cluster
+### Running across the entire OpenShift Cluster
 
 If you are migrating the whole cluster, you can generate namespace yamls for all the project running user workloads. 
 
@@ -94,7 +94,7 @@ spec:
 
 [Cluster Resource Quotas](https://docs.openshift.com/container-platform/4.7/rest_api/schedule_and_quota_apis/clusterresourcequota-quota-openshift-io-v1.html) are OpenShift specific resources that are not applicable as-is on a Kubernetes cluster. These aggregate quotas at a multiple namespace level. To apply quotas to a kubernetes cluster, you can convert these into individual namespace level resource quotas. You will have to manually decide on how much quota to allocate for individual namespaces. 
 
-## Checking the values of individual ClusterResourceQuotas
+### Checking the values of individual ClusterResourceQuotas
 
 You can get the list of ClusterResourceQuotas by running
 
@@ -119,7 +119,7 @@ yq e 'del(.metadata.creationTimestamp)' - \
 ```
 
 
-## Generating Resource Quota Templates from ClusterResourceQuotas
+### Generating Resource Quota Templates from ClusterResourceQuotas
 
 The following script will generate two files for each ClusterResourceQuota.
 1. Original ClusterResourceQuota that you can use to decide the namespaces this quota applies to. This is a manual decision.
@@ -198,7 +198,7 @@ Once you decide the specific ResourceQuotas to apply to individual namespaces, c
 # 3. Exporting NetNameSpaces
 [NetNamespace](https://docs.openshift.com/container-platform/4.7/rest_api/network_apis/netnamespace-network-openshift-io-v1.html)s are OpenShift resources used for namespace level isolation.  In this section we will export these files. But these cannot be applied to the target cluster. The target Network Policies have to be manually configured.
 
-## Listing individual Netnamespaces
+### Listing individual Netnamespaces
 
 List netnamespaces on the OpenShift cluster by running:
 
@@ -217,7 +217,7 @@ for i in $(oc get netnamespaces -o jsonpath='{.items[*].metadata.name}'); do
 done
 ```
 
-## Export Netnamespaces
+### Export Netnamespaces
 
 Retrieve the list of NetNamespaces for the openshift projects of interest. These will be saved into `clusterconfigs/to-review/net-namespaces` folder for future reference.
 
@@ -242,7 +242,7 @@ done
 
 [ResourceQuotas](https://kubernetes.io/docs/concepts/policy/resource-quotas/) are kubernetes resources that can be applied from the source cluster to the target cluster. No changes are necessary.
 
-## Checking values of individual ResourceQuotas
+### Checking values of individual ResourceQuotas
 
 You can use this section if you are handling one resourcequota at a time.
 
@@ -272,7 +272,7 @@ oc get resourcequota $RQ_NAME -n $PROJECT_NAME -o yaml \
 
 ```
 
-## Export all project level ResourceQuotas
+### Export all project level ResourceQuotas
 
 To export ResourceQuotas across all the selected set of namespaces in the `clusterconfigs/namespaces` folder , run the following script. This will save the ResourceQuotas in `clusterconfigs/namespaces/NAMESPACE` folder, each with a unique name.
 
@@ -300,7 +300,7 @@ done
 
 [ClusterRoles and ClusterRoleBindings](https://kubernetes.io/docs/reference/access-authn-authz/rbac/) are k8s resources that can be applied to the target cluster. This section exports the cluster roles and corresponding cluster role bindings. However, you may not want all the cluster roles and rolebindings on the target cluster. So while the scripts generate the files, you can manually filter out the ones needed and apply the ones you decide.
 
-## Export Cluster Roles
+### Export Cluster Roles
 
 To get a list of cluster roles run
 ```
@@ -336,7 +336,7 @@ done
 
 Review the list of cluster roles in the `projectconfigs/cluster-roles` folder and delete the manifests for the roles that should not be exported to the target cluster.
 
-## Export Cluster Role Bindings
+### Export Cluster Role Bindings
 
 If you are dealing with individual cluster role binding migration, you can list the clusterrolebindings using `oc get clusterrolebindings` and then get the individual clusterrolebinding manifest by running:
 
@@ -375,7 +375,7 @@ Verify the ClusterRoles and ClusterRoleBindings together again and remove those 
 
 In this section we will export project level Roles, ServiceAccounts and RoleBindings associated with Roles, ServiceAccounts and ClusterRoles.
 
-## Get Project Roles for an OpenShift Project
+### Get Project Roles for an OpenShift Project
 
 If you are looking to export individual roles for a specific project, use this section.
 
@@ -399,7 +399,7 @@ oc get role $ROLE -n $OPENSHIFT_PROJECT -o yaml \
     | yq e 'del(.status)' -
 ```
 
-## Export all the Roles across all the selected Namespaces
+### Export all the Roles across all the selected Namespaces
 
 Export roles across all the selected namespaces in the `clusterconfigs/namespaces` folder. The following script will export the roles into `clusterconfigs/namespaces/NAMESPACE` folder.
 
@@ -419,7 +419,7 @@ for ns in $(ls clusterconfigs/namespaces); do
 done
 ```
 
-## Export Service Accounts for an OpenShift Project
+### Export Service Accounts for an OpenShift Project
 
 If you are handling service accounts at the individual project level, use this.
 
@@ -458,7 +458,7 @@ for i in $(oc get -n $OPENSHIFT_PROJECT sa -o jsonpath='{.items[*].metadata.name
 done
 ```
 
-## Export Service Accounts across all namespaces
+### Export Service Accounts across all namespaces
 
 The script below exports user created/workload specific service accounts across all namespaces and stores them in the service accounts folder in `clusterconfigs/namespaces/NAMESPACE` folder.
 
@@ -484,7 +484,7 @@ done
 ```
 
 
-## Export RoleBinding
+### Export RoleBinding
 
 If you are trying to export individual rolebindings for a specific OpenShift Project, look at this section.
 
@@ -504,7 +504,7 @@ oc get rolebinding $RB -n $OPENSHIFT_PROJECT -o yaml \
 | yq e 'del(.metadata.uid)' - 
 ```
 
-## Expert RoleBindings for all Roles and Service Accounts
+### Expert RoleBindings for all Roles and Service Accounts
 
 Export the role bindings relevant to the roles and service accounts selected above. These will be stored in `clusterconfigs/namespaces/NAMESPACE` folder
 
@@ -548,7 +548,7 @@ for ns in $(ls clusterconfigs/namespaces); do
 done
 ```
 
-## RoleBindings associated with ClusterRoles
+### RoleBindings associated with ClusterRoles
 
 OpenShift creates certain rolebindings associated with cluster roles. These can be **optionally applied after reviewing them individually** if the cluster roles are being used in the target cluster. The following script will export all the rolebindings associated with cluster roles to `clusterconfigs/to-review/namespace-clusterrole-bindings/namespaces/NAMESPACE` folder. Once you review if you want to apply them, you can move to respective namespace folder. 
 
