@@ -3,7 +3,7 @@
 There are multiple steps required to trigger the migration and the composition of OpenShift clusters may vary. The below guide provides instructions for converting and migrating different object types from OpenShift to Kubernetes (EKS in this case). All the steps in the document are just to provide an overview on how the objects differ between Openshift and Kubernetes.
 
 
-# Converting OpenShift Projects to Kubernetes Namespaces
+# 1. Converting OpenShift Projects to Kubernetes Namespaces
 
 [OpenShift projects](https://docs.openshift.com/container-platform/4.7/rest_api/project_apis/project-project-openshift-io-v1.html) are equvalent to Kubernetes Namespaces. Technically, OpenShift Project and Kubernetes Namespace are basically the same: A Project is a Kubernetes namespace with additional annotations (an functionality) to provide multi tenancy.
 
@@ -90,7 +90,7 @@ spec:
     - kubernetes
 ```
 
-# Migrating ClusterResourceQuotas
+# 2. Migrating ClusterResourceQuotas
 
 [Cluster Resource Quotas](https://docs.openshift.com/container-platform/4.7/rest_api/schedule_and_quota_apis/clusterresourcequota-quota-openshift-io-v1.html) are OpenShift specific resources that are not applicable as-is on a Kubernetes cluster. These aggregate quotas at a multiple namespace level. To apply quotas to a kubernetes cluster, you can convert these into individual namespace level resource quotas. You will have to manually decide on how much quota to allocate for individual namespaces. 
 
@@ -195,7 +195,7 @@ Note the selection criteria in the original file. You can use that to determine 
 Once you decide the specific ResourceQuotas to apply to individual namespaces, copy the second file as `clusterconfigs/namespaces/NAMESPACE/quota.yaml` and change the quota values, the value for namespace (`namespace: CHANGEME`) and save the file. This changed quota would be applied to the target kubernetes cluster.
 
 
-# Exporting NetNameSpaces
+# 3. Exporting NetNameSpaces
 [NetNamespace](https://docs.openshift.com/container-platform/4.7/rest_api/network_apis/netnamespace-network-openshift-io-v1.html)s are OpenShift resources used for namespace level isolation.  In this section we will export these files. But these cannot be applied to the target cluster. The target Network Policies have to be manually configured.
 
 ## Listing individual Netnamespaces
