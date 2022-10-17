@@ -238,7 +238,7 @@ fi
 done
 ```
 
-# Migrating Project Specific Resource Quotas
+# 4. Migrating Project Specific Resource Quotas
 
 [ResourceQuotas](https://kubernetes.io/docs/concepts/policy/resource-quotas/) are kubernetes resources that can be applied from the source cluster to the target cluster. No changes are necessary.
 
@@ -296,7 +296,7 @@ for ns in $(ls clusterconfigs/namespaces); do
 done
 ```
   
-# Migrate Cluster Roles and Cluster Role Bindings
+# 5. Migrate Cluster Roles and Cluster Role Bindings
 
 [ClusterRoles and ClusterRoleBindings](https://kubernetes.io/docs/reference/access-authn-authz/rbac/) are k8s resources that can be applied to the target cluster. This section exports the cluster roles and corresponding cluster role bindings. However, you may not want all the cluster roles and rolebindings on the target cluster. So while the scripts generate the files, you can manually filter out the ones needed and apply the ones you decide.
 
@@ -371,7 +371,7 @@ done; done
 Verify the ClusterRoles and ClusterRoleBindings together again and remove those that are not relevant to target cluster.
 
   
-# Migrate Project Roles, Service Accounts and RoleBindings
+# 6. Migrate Project Roles, Service Accounts and RoleBindings
 
 In this section we will export project level Roles, ServiceAccounts and RoleBindings associated with Roles, ServiceAccounts and ClusterRoles.
 
@@ -572,10 +572,10 @@ for ns in $(ls clusterconfigs/namespaces); do
 done
 ```
 
-# Export Application Related Manifests
+# 7. Export Application Related Manifests
 
 
-## Export Deployment Configs
+### Export Deployment Configs
 
 ```
 for ns in $(ls clusterconfigs/namespaces); do
@@ -600,7 +600,7 @@ for ns in $(ls clusterconfigs/namespaces); do
 done
 ```
 
-## Export Deployments
+### Export Deployments
 ```
 for ns in $(ls clusterconfigs/namespaces); do
     echo "Exporting manifests for namespace: " $ns;
@@ -623,7 +623,7 @@ for ns in $(ls clusterconfigs/namespaces); do
 done
 ```
 
-## Export Secrets
+### Export Secrets
 
 **CAUTION:** You may not want to export secrets to a git repository
 
@@ -651,7 +651,7 @@ for ns in $(ls clusterconfigs/namespaces); do
 done
 ```
 
-## Export ImageStreams
+### Export ImageStreams
 
 ```
 for ns in $(ls clusterconfigs/namespaces); do
@@ -672,7 +672,7 @@ for ns in $(ls clusterconfigs/namespaces); do
 done
 ```
 
-## Export Services
+### Export Services
 
 ```
 for ns in $(ls clusterconfigs/namespaces); do
@@ -699,7 +699,7 @@ done
 
 ```
 
-## Export Routes
+### Export Routes
 
 ```
 for ns in $(ls clusterconfigs/namespaces); do
@@ -724,7 +724,7 @@ done
 
 ```
 
-## Export ConfigMaps
+### Export ConfigMaps
 
 ```
 for ns in $(ls clusterconfigs/namespaces); do
@@ -747,7 +747,7 @@ done
  
 ```
 
-## Export Persistent Volume Claims
+### Export Persistent Volume Claims
 
 ```
 
@@ -771,7 +771,7 @@ done
 
 ```
 
-# Image Migration from OpenShift Internal Registry to GCR
+# 8. Image Migration from OpenShift Internal Registry to ECR (Elastic Container Registry)
 
 If you are using OpenShift Internal Registry to store the application container images, you will need to export these images to a different registry to deploy them to the target cluster. If you are already using an external registry, you don't need to follow the steps explained in this section.
 
@@ -783,7 +783,7 @@ The steps below are tested on a Linux box. These do not work on Google Cloud She
 * Install Docker on the host.
 
 
-## Connecting to OpenShift Internal Registry 
+### Connecting to OpenShift Internal Registry 
 
 * Get OpenShift Registry URL. 
 
@@ -828,7 +828,7 @@ sudo docker login -u `oc whoami` -p `oc whoami -t` $REGISTRY_URL
 ```
 You should see a message `Login Succeeded`
 
-## Connecting to Target GCR 
+### Connecting to Target GCR 
 
 ```
 gcloud auth print-access-token | sudo docker login -u oauth2accesstoken --password-stdin https://gcr.io
@@ -836,7 +836,7 @@ gcloud auth print-access-token | sudo docker login -u oauth2accesstoken --passwo
 You should see a message `Login Succeeded`
 
 
-## Migrate Images for an Application
+### Migrate Images for an Application
 
 For the application on the namespace you are trying to migrate, you can migrate the container images from source OpenShift Internal Registry to the target GCR repository as follows:
 
@@ -875,7 +875,7 @@ sudo docker push $TARGET_IMAGE
 If there are multiple imagestreams in the namespace, repeat the above steps for all image streams to migrate all the images.  
 
 
-## Migrate all Images from the Cluster
+### Migrate all Images from the Cluster
 
 If you want to migrate all the container images for the selected namespaces from source OpenShift Internal Registry to target GCR registry instead of doing it on a per namespace basis, run this script. This script may take several hours to run depending on the number of images to be migrated, their size and your connection speed to the source and target registries.
 
@@ -915,7 +915,7 @@ chmod +x shifter
 ```
 Also set the PATH to access shifter or move it to a place where the PATH is already set.
 
-## Converting Manifests
+### Converting Manifests
 
 * Select a namespace you want to migrate. You can select one from the list of namespaces for which the manifests were exported previously `ls ocp-manifests/namespaces/`
 
@@ -971,7 +971,7 @@ done
 
 * If you have Persistent volumes to migrate, follow the procedure [here](WIP)
 
-## Create Image Pull Secret 
+### Create Image Pull Secret 
 
 The target cluster may require credentials to pull images from a container registry, if the registry is protected. In this section, we will see how to set up a secret to the container registry. We will use GCR as an example.
 
@@ -988,7 +988,7 @@ SERVICE_ACCOUNT_EMAIL=registry-sa@ocptogkedemoproject.iam.gserviceaccount.com
 kubectl create secret docker-registry $IMAGEPULLSECRET         --docker-server=gcr.io         --docker-username=_json_key         --docker-email=$SERVICE_ACCOUNT_EMAIL    --docker-password="$(cat key.json)" -n $NAMESPACE
 ```
 
-## Update the deployments to point to Target Registry
+### Update the deployments to point to Target Registry
 
 * **If the images have been migrated** to [a different registry as part of migration](./11.TransferApplicationImages.md) from OpenShift Internal Registry, change the container image in the deployment to point to the target repository where the image is moved.
 
@@ -1021,7 +1021,7 @@ done
 
 
 
-## Apply Security Constraints to the Deployments
+### Apply Security Constraints to the Deployments
 
 
 * Generate secure deployments, depending on the policies that apply to your namespace. Refer the [ACM Security Polices that were set up earlier](./8.SetupRestrictedConstraints.md). If your application runs with [restricted security constraints](./policies/restricted/restricted_constraints.yaml), we have to update deployments with security settings that meet those constraints. In the example below, we will apply specific USERID, FSGROUPID, drop capabilities.
@@ -1049,7 +1049,7 @@ done;
 Verify the deployments generated to make sure they are good with the changes.
 
 
-## Applying Application Manifests to the Target Cluster
+### Applying Application Manifests to the Target Cluster
 
 * Connect to the Target GKE Cluster, if you are not already connected
 
@@ -1183,7 +1183,7 @@ gsutil iam ch serviceAccount:$SERVICE_ACCOUNT_EMAIL:objectAdmin gs://${BUCKET}
 gcloud iam service-accounts keys create credentials-velero \
     --iam-account $SERVICE_ACCOUNT_EMAIL
 ```
-## Install Velero
+### Install Velero
 Next, we could use the following script to install velero in both Openshift and Kubernetes (GKE) clusters. This script has to be executed with [kubectx](https://github.com/ahmetb/kubectx/releases) and [oc](https://docs.openshift.com/container-platform/3.6/cli_reference/get_started_cli.html#installing-the-cli) commands. Please provide the kubeconfig contexts and bucket name as the input of the script.
 ```console
 export context_src={OPENSHIFT_CONTEXT}
@@ -1209,12 +1209,12 @@ velero install \
     --use-restic \
     --secret-file credentials-velero
 ```
-## Annotate workloads for Velero backup
+### Annotate workloads for Velero backup
 Velero uses annotation to notify Restic the volumes to backup. Since the persistent volumes were attached to each pod, it became complicated when  Velero, after version 1.5, supports both [opt-in](https://velero.io/docs/v1.5/restic/#using-opt-in-pod-volume-backup) and [opt-out](https://velero.io/docs/v1.5/restic/#using-the-opt-out-approach) mechanims for persistent volume backup. Opt-in mode does not backup any persistent volume by default but only to the pods which have the annotation. Opt-out mode would backup all persistent volumes (except for secrets/configmaps and hostpath volumes) by default. Pods requires to be annotated to have its volume being excluded.
 
 In this demo, we choose opt-out since we intended to backup all persistent volumes in the desired namespace. By adding "--default-volumes-to-restic" in the backup command could easily activate the opt-out mode. Compared with the opt-in mode which requires additional annotations, opt-out mode provides an easier way for existing openshift data migration.
 
-## Converting Manifests
+### Converting Manifests
 We took a similar approach as shown in [11.MigrateApplications#converting-manifests](https://github.com/VeerMuchandi/MigratingFromOpenShiftToGKE/blob/main/11.MigrateApplications.md#converting-manifests) to capture openshift objects into YAML format and stored in ocp-manifests/ folder. Then, shifter is applied to convert those openshift objects into standard kubernetes object yaml files and stored in kubernetes-manifests/ folder (shown in the last step).
 
 ```
@@ -1284,7 +1284,7 @@ for service in $(./oc get service -n $ns -o jsonpath='{.items[*].metadata.name}'
 done;
 ./shifter convert -f ./ocp-manifests/namespaces/$ns -t yaml -o ./kubernetes-manifests/namespaces/$ns
 ```
-## Select workloads for Velero Backup
+### Select workloads for Velero Backup
 Velero, by default, does not only backup persistent volume but also standard kubernetes objects (e.g. pods, services, config maps). Those components are included in deployment objects, converted by shifter in previous step. We therefore will adapt labelling techniques, provided by Velero. By properly label the PersistentVolume and PersistentVolumeClaim, we could successfully backup data without other kubernetes objects. The following script provides an example. 
 
 ```
@@ -1298,7 +1298,7 @@ my_pv=$(./oc get pv | grep ${pvc_name} | awk '{print $1}')
 
 velero backup create select-backup --selector ${mylabel} --default-volumes-to-restic
 ```
-## Activate Migrated Workloads
+### Activate Migrated Workloads
 Finally, we will activate the entire workloads. Let's first switch to the kubernetes cluster and use "velero backup get" to ensure the backup is successful. Note the the status of the backup success could be delay in target cluster compared with the source cluster. Once the backup is completed, by running the following two commands, we could have the entire workloads up-and-running in target cluster.
 ```
 velero restore create ${restore-name} --from-backup ${backup-name}
