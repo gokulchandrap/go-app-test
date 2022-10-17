@@ -185,6 +185,107 @@ Note the selection criteria in the original file. You can use that to determine 
 
 Once you decide the specific ResourceQuotas to apply to individual namespaces, copy the second file as `clusterconfigs/namespaces/NAMESPACE/quota.yaml` and change the quota values, the value for namespace (`namespace: CHANGEME`) and save the file. This changed quota would be applied to the target kubernetes cluster.
 
+
+# Exporting NetNameSpaces
+[NetNamespace](https://docs.openshift.com/container-platform/4.7/rest_api/network_apis/netnamespace-network-openshift-io-v1.html)s are OpenShift resources used for namespace level isolation.  In this section we will export these files. But these cannot be applied to the target cluster. The target Network Policies have to be manually configured.
+
+## Listing individual Netnamespaces
+
+List netnamespaces on the OpenShift cluster by running:
+
+```
+oc get netnamespaces
+```
+
+To filter netnamespaces for specific openshift projects, you an apply project filters like before.
+
+```
+PROJECT_FILTERS="^openshift-\|^kube-\|^istio-system\|^knative-"
+for i in $(oc get netnamespaces -o jsonpath='{.items[*].metadata.name}'); do 
+  if grep -v "$PROJECT_FILTERS" <<< $i ; then 
+     echo $i 
+  fi 
+done
+```
+
+## Export Netnamespaces
+
+Retrieve the list of NetNamespaces for the openshift projects of interest. These will be saved into `clusterconfigs/to-review/net-namespaces` folder for future reference.
+
+```
+PROJECT_FILTERS="^openshift-\|^kube-\|^istio-system\|^knative-"
+mkdir -p clusterconfigs/to-review/net-namespaces
+for i in $(oc get netnamespaces -o jsonpath='{.items[*].metadata.name}'); do 
+if grep -v "$PROJECT_FILTERS" <<< $i ; then 
+    echo "Exporting NetNamespace: " $i; \
+    oc get netnamespaces $i -o yaml \
+    | yq e 'del(.metadata.creationTimestamp)' - \
+    | yq e 'del(.metadata.resourceVersion)' - \
+    | yq e 'del(.metadata.selfLink)' - \
+    | yq e 'del(.metadata.uid)' - \
+    | yq e 'del(.status)' -  \
+    > clusterconfigs/to-review/net-namespaces/$i.yaml
+fi
+done
+```
+
+# Migrating Project Specific Resource Quotas
+
+[ResourceQuotas](https://kubernetes.io/docs/concepts/policy/resource-quotas/) are kubernetes resources that can be applied from the source cluster to the target cluster. No changes are necessary.
+
+## Checking values of individual ResourceQuotas
+
+You can use this section if you are handling one resourcequota at a time.
+
+To list ResourceQuotas in a project, run 
+
+```
+PROJECT_NAME=<<projectname>>
+oc get resourcequota -n $PROJECT_NAME
+```
+
+To get a specific ResourceQuota within an OpenShift project
+
+```
+PROJECT_NAME=<<projectname>>
+RQ_NAME=<<resourcequotaname>>
+oc get resourcequota $RQ_NAME -n $PROJECT_NAME -o yaml \
+    | yq e 'del(.metadata.creationTimestamp)' - \
+    | yq e 'del(.metadata.resourceVersion)' - \
+    | yq e 'del(.metadata.selfLink)' - \
+    | yq e 'del(.metadata.uid)' - \
+    | yq e 'del(.status)' -  \
+    | yq e 'del(.metadata.managedFields)' - \
+    | yq e 'del(.metadata.annotations)' - \
+    | yq e 'del(.metadata.manager)' - \
+    | yq e 'del(.metadata.operation)' - \
+    | yq e 'del(.metadata.time)' - 
+
+```
+
+## Export all project level ResourceQuotas
+
+To export ResourceQuotas across all the selected set of namespaces in the `clusterconfigs/namespaces` folder , run the following script. This will save the ResourceQuotas in `clusterconfigs/namespaces/NAMESPACE` folder, each with a unique name.
+
+```
+for ns in $(ls clusterconfigs/namespaces); do 
+    for i in $(oc get resourcequotas -n $ns -o jsonpath='{.items[*].metadata.name}'); do
+     echo "Exporting resource quotas" $i "for namespace" $ns; \
+     mkdir -p clusterconfigs/namespaces/$ns
+     oc get resourcequota $i -n $ns -o yaml \
+        | yq e 'del(.metadata.creationTimestamp)' - \
+        | yq e 'del(.metadata.resourceVersion)' - \
+        | yq e 'del(.metadata.selfLink)' - \
+        | yq e 'del(.metadata.uid)' - \
+        | yq e 'del(.status)' -  \
+        | yq e 'del(.metadata.managedFields)' - \
+        | yq e 'del(.metadata.annotations)' - \
+        | yq e 'del(.metadata.manager)' - \
+        | yq e 'del(.metadata.operation)' - \
+        | yq e 'del(.metadata.time)' -  > clusterconfigs/namespaces/$ns/$i-quota.yaml      
+    done; 
+done
+```
   
 # Migrate Cluster Roles and Cluster Role Bindings
 
@@ -461,6 +562,8 @@ for ns in $(ls clusterconfigs/namespaces); do
     done;
 done
 ```
+
+# Export Application Related Manifests
 
 
 ## Export Deployment Configs
