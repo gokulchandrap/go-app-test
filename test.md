@@ -1,10 +1,19 @@
+# Migration Workflow
+
+There are multiple steps required to trigger the migration and the composition of OpenShift clusters may vary. The below guide provides instructions for converting and migrating different object types from OpenShift to Kubernetes (EKS in this case). All the steps in the document are just to provide an overview on how the objects differ between Openshift and Kubernetes.
+
+
 # Converting OpenShift Projects to Kubernetes Namespaces
 
-[OpenShift projects](https://docs.openshift.com/container-platform/4.7/rest_api/project_apis/project-project-openshift-io-v1.html) can be mapped to Kubernetes Namespaces.
+[OpenShift projects](https://docs.openshift.com/container-platform/4.7/rest_api/project_apis/project-project-openshift-io-v1.html) are equvalent to Kubernetes Namespaces. Technically, OpenShift Project and Kubernetes Namespace are basically the same: A Project is a Kubernetes namespace with additional annotations (an functionality) to provide multi tenancy.
+
+If you’re deploying software on OpenShift you’ll basically use the project exactly the same way as a Kubernetes namespace, except a normal user can be prevented from creating their own projects, requiring a cluster administrator to do that.
+
+A good example would be network policies that close your project for external traffic so that is isolated and secure by default – if you want to permit some kind of traffic you would do so by creating additional policies explicitly. In a similar way, you could provide default quotas or LimitRange objects and make your new projects pre-configured according to your organization rules.
 
 ## Generating Kubernetes namespace for each OpenShift Project.
 
-If you are migrating individual projects, here is a typical script to convert an OpenShift Project to Kubernetes namespace. Substitute the variable names accordingly before running.
+If you are migrating individual projects (recommended), here is a typical script to convert an OpenShift Project to Kubernetes namespace. Substitute the variable names accordingly before running.
 
 ```
 PROJECT_NAME=<<yourprojectname>>
@@ -25,12 +34,12 @@ yq e '.apiVersion |= "v1"' - \
 
 If you are migrating the whole cluster, you can generate namespace yamls for all the project running user workloads. 
 
-In a typical openshift cluster projects are used for cluster services as well. All projects beginning with `kube-` and `openshift-` are cluster services. In addition, there may be other projects like `istio-system`,  `knative-serving`, `knative-eventing` etc, that run other services. While we are applying filters to not migrate such projects, depending on what is running on the cluster you may need additional filtering or you may need to remove any namespaces that should not be migrated.
+In a typical openshift cluster projects are used for cluster services as well. All projects beginning with `kube-` and `openshift-` are cluster services. In addition, there may be other projects like `istio-system`,  `dlx-2`, `dlx-1` etc, that run other services. While we are applying filters to not migrate such projects, depending on what is running on the cluster you may need additional filtering or you may need to remove any namespaces that should not be migrated.
 
 Projects can be filtered by editing the PROJECT_FILTERS variable in the script below. The following script will show you list of projects. 
 
 ```
-PROJECT_FILTERS="^openshift-\|^kube-\|^istio-system\|^knative-"
+PROJECT_FILTERS="^openshift-\|^kube-\|^istio-system\|^dlx-"
 for i in $(oc get projects -o jsonpath='{.items[*].metadata.name}'); do 
   if grep -v "$PROJECT_FILTERS" <<< $i ; then 
      echo $i 
@@ -44,7 +53,7 @@ Run the following command to generate kubernetes namespace configurations for th
 
 ```
 mkdir -p clusterconfigs/namespaces
-PROJECT_FILTERS="^openshift-\|^kube-\|^istio-system\|^knative-"
+PROJECT_FILTERS="^openshift-\|^kube-\|^istio-system\|^dlx-"
 for i in $(oc get projects -o jsonpath='{.items[*].metadata.name}'); do 
 if grep -v "$PROJECT_FILTERS" <<< $i ; then 
     echo "Exporting Project: " $i; \
@@ -70,12 +79,12 @@ Verify each namespace file to make sure it is in the format you expect.
 As an example:
 
 ```
-$ cat clusterconfigs/namespaces/demo/namespace.yaml
+$ cat clusterconfigs/namespaces/dlx-1/namespace.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
   annotations: {}
-  name: demo
+  name: dlx-1
 spec:
   finalizers:
     - kubernetes
