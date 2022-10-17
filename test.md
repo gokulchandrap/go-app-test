@@ -81,15 +81,21 @@ spec:
     - kubernetes
 ```
 
-Migrating ClusterResourceQuotas
-Cluster Resource Quotas are OpenShift specific resources that are not applicable as-is on a Kubernetes cluster. These aggregate quotas at a multiple namespace level. To apply quotas to a kubernetes cluster, you can convert these into individual namespace level resource quotas. You will have to manually decide on how much quota to allocate for individual namespaces.
+# Migrating ClusterResourceQuotas
 
-Checking the values of individual ClusterResourceQuotas
+[Cluster Resource Quotas](https://docs.openshift.com/container-platform/4.7/rest_api/schedule_and_quota_apis/clusterresourcequota-quota-openshift-io-v1.html) are OpenShift specific resources that are not applicable as-is on a Kubernetes cluster. These aggregate quotas at a multiple namespace level. To apply quotas to a kubernetes cluster, you can convert these into individual namespace level resource quotas. You will have to manually decide on how much quota to allocate for individual namespaces. 
+
+## Checking the values of individual ClusterResourceQuotas
+
 You can get the list of ClusterResourceQuotas by running
 
+```
 oc get clusterresourcequotas
+```
+
 Removing all extraneous values, if you want to list a specific cluster resource quotas, you can check it by running:
 
+```
 CLUSTER_QUOTA_NAME=<<clusterquotaname>>
 oc get clusterresourcequota $CLUSTER_QUOTA_NAME -o yaml | \
 yq e 'del(.metadata.creationTimestamp)' - \
@@ -101,13 +107,18 @@ yq e 'del(.metadata.creationTimestamp)' - \
 | yq e 'del(.metadata.selfLink)' - \
 | yq e 'del(.metadata.uid)' - 
 
-Generating Resource Quota Templates from ClusterResourceQuotas
+```
+
+
+## Generating Resource Quota Templates from ClusterResourceQuotas
+
 The following script will generate two files for each ClusterResourceQuota.
+1. Original ClusterResourceQuota that you can use to decide the namespaces this quota applies to. This is a manual decision.
+2. A template for Kubernetes ResourceQuota. The quota values are retained at the cluster resource quota level. You can copy and edit this file to split up the ClusterResourceQuotas into ResourceQuotas for specific namespaces. This requires a little manual editing once you decide quota for each namespace.
 
-Original ClusterResourceQuota that you can use to decide the namespaces this quota applies to. This is a manual decision.
-A template for Kubernetes ResourceQuota. The quota values are retained at the cluster resource quota level. You can copy and edit this file to split up the ClusterResourceQuotas into ResourceQuotas for specific namespaces. This requires a little manual editing once you decide quota for each namespace.
-The files will be saved in the folder clusterconfigs/to-review/cluster-resource-quotas
+The files will be saved in the folder `clusterconfigs/to-review/cluster-resource-quotas`
 
+```
 mkdir -p clusterconfigs/to-review/cluster-resource-quotas
 for i in $(oc get clusterresourcequota  -o jsonpath='{.items[*].metadata.name}'); do \
 echo "Exporting Cluster Resource Quota:" $i; \
@@ -134,8 +145,11 @@ yq e '.apiVersion |= "v1"' - \
 | yq e 'del(.spec.selector)' - \
 | yq e '.metadata.namespace |= "CHANGEME"' - > clusterconfigs/to-review/cluster-resource-quotas/$i.yaml
 done
+```
+
 The above command will generate two files for each ClusterResourceQuota as shown below:
 
+```
 $ cat clusterconfigs/to-review/cluster-resource-quotas/for-name.original
 apiVersion: quota.openshift.io/v1
 kind: ClusterResourceQuota
@@ -151,6 +165,9 @@ spec:
     labels:
       matchLabels:
         name: frontend
+```
+
+```
 $ cat clusterconfigs/to-review/cluster-resource-quotas/for-name.yaml
 apiVersion: v1
 kind: ResourceQuota
@@ -162,9 +179,11 @@ spec:
     hard:
       pods: "10"
       secrets: "20"
+```
+
 Note the selection criteria in the original file. You can use that to determine the openshift projects impacted by the ClusterResourceQuota. You may have to split this quota among multiple namespaces in the target kubernetes cluster.
 
-Once you decide the specific ResourceQuotas to apply to individual namespaces, copy the second file as clusterconfigs/namespaces/NAMESPACE/quota.yaml and change the quota values, the value for namespace (namespace: CHANGEME) and save the file. This changed quota would be applied to the target kubernetes cluster.
+Once you decide the specific ResourceQuotas to apply to individual namespaces, copy the second file as `clusterconfigs/namespaces/NAMESPACE/quota.yaml` and change the quota values, the value for namespace (`namespace: CHANGEME`) and save the file. This changed quota would be applied to the target kubernetes cluster.
 
   
 # Migrate Cluster Roles and Cluster Role Bindings
